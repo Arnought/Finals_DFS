@@ -12,45 +12,70 @@ public class DFSPathfinding : MonoBehaviour
     public GameObject groundPrefab;
     public GameObject playerPrefab;
 
+    private GameObject player;
+    private Vector2Int playerPosition;
+
     void Start()
     {
-        // Initialize a sample map (5x5 grid)
+        // Initialize a sample map (12x12 grid)
         int[,] map = new int[,] {
-            { 0, 0, 1, 0, 0 },
-            { 0, 1, 0, 1, 0 },
-            { 0, 0, 0, 1, 0 },
-            { 1, 1, 0, 0, 0 },
-            { 0, 0, 0, 1, 0 }
+            { 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0 },
+            { 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0 },
+            { 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0 },
+            { 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0 },
+            { 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0 },
+            { 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0 },
+            { 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0 },
+            { 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0 },
+            { 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0 },
+            { 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0 },
+            { 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0 },
+            { 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0 }
         };
 
         _grid = new Grid(map);
 
         Vector2Int start = new Vector2Int(0, 0);
-        Vector2Int target = new Vector2Int(4, 4);
+        playerPosition = start;
 
         DrawGrid();
         Instantiate(startPrefab, new Vector3(start.x, 0, start.y), Quaternion.identity);
-        Instantiate(targetPrefab, new Vector3(target.x, 0, target.y), Quaternion.identity);
 
-        List<Vector2Int> path = FindPathDFS(start, target);
+        player = Instantiate(playerPrefab, new Vector3(start.x, 0, start.y), Quaternion.identity);
+    }
 
-        if (path != null)
+    void Update()
+    {
+        if (Input.GetMouseButtonDown(0))
         {
-            List<Vector3> pathPositions = new List<Vector3>();
+            Vector3 mousePosition = Input.mousePosition;
+            Ray ray = Camera.main.ScreenPointToRay(mousePosition);
+            RaycastHit hit;
 
-            foreach (var cell in path)
+            if (Physics.Raycast(ray, out hit))
             {
-                Instantiate(pathPrefab, new Vector3(cell.x, 0.1f, cell.y), Quaternion.identity);
-                pathPositions.Add(new Vector3(cell.x, 0, cell.y));
-            }
+                Vector3 hitPosition = hit.point;
+                Vector2Int target = new Vector2Int(Mathf.RoundToInt(hitPosition.x), Mathf.RoundToInt(hitPosition.z));
 
-            GameObject player = Instantiate(playerPrefab, new Vector3(start.x, 0, start.y), Quaternion.identity);
-            PlayerMovement playerMovement = player.GetComponent<PlayerMovement>();
-            playerMovement.SetPath(pathPositions);
-        }
-        else
-        {
-            Debug.Log("No path found");
+                if (_grid.IsPassable(target.x, target.y))
+                {
+                    List<Vector2Int> path = FindPathDFS(playerPosition, target);
+
+                    if (path != null)
+                    {
+                        List<Vector3> pathPositions = new List<Vector3>();
+
+                        foreach (var cell in path)
+                        {
+                            pathPositions.Add(new Vector3(cell.x, 0, cell.y));
+                        }
+
+                        PlayerMovement playerMovement = player.GetComponent<PlayerMovement>();
+                        playerMovement.SetPath(pathPositions);
+                        playerPosition = target;
+                    }
+                }
+            }
         }
     }
 
